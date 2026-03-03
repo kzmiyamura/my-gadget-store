@@ -1,0 +1,30 @@
+services:
+  # 1. データベース (PostgreSQL)
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: gadget_db
+    ports:
+      - "5432:5432"
+
+  # 2. バックエンド (NestJS)
+  backend:
+    build: ./backend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://user:password@db:5432/gadget_db
+
+  # 3. フロントエンド (Angular)
+  frontend:
+    build: ./frontend
+    ports:
+      - "4200:4200"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
