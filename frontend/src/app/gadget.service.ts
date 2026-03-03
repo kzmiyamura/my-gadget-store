@@ -13,4 +13,10 @@ export class GadgetService {
   getGadgets(): Observable<Gadget[]> {
     return this.http.get<Gadget[]>(this.apiUrl);
   }
+
+  searchGadgets(query: string): Observable<Gadget[]> {
+    return this.http.get<Gadget[]>(this.apiUrl, {
+      params: query ? { q: query } : {},
+    });
+  }
 }
