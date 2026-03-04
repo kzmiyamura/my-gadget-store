@@ -1,9 +1,11 @@
 import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { GadgetService } from './gadget.service';
 import { Gadget } from './gadget.model';
+import { AuthService } from './auth/auth.service';
 
 @Component({
   selector: 'app-gadget-list',
@@ -12,9 +14,19 @@ import { Gadget } from './gadget.model';
   template: `
     <div class="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 py-12 px-4">
       <div class="max-w-7xl mx-auto">
-        <h1 class="text-4xl font-bold text-gray-800 mb-8 text-center">
-          ガジェットストア
-        </h1>
+        <!-- ヘッダー -->
+        <div class="flex items-center justify-between mb-8">
+          <h1 class="text-4xl font-bold text-gray-800">ガジェットストア</h1>
+          <div class="flex items-center gap-3">
+            <span class="text-sm text-gray-500">{{ authService.currentUser()?.email }}</span>
+            <button
+              (click)="logout()"
+              class="text-sm bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 font-medium py-2 px-4 rounded-lg transition duration-200"
+            >
+              ログアウト
+            </button>
+          </div>
+        </div>
 
         <!-- 検索フォーム -->
         <div class="mb-10 max-w-xl mx-auto">
@@ -76,6 +88,8 @@ export class GadgetListComponent implements OnInit, OnDestroy {
   private gadgetService = inject(GadgetService);
   private searchSubject = new Subject<string>();
   private subscription = new Subscription();
+  protected authService = inject(AuthService);
+  private router = inject(Router);
 
   gadgets = signal<Gadget[]>([]);
   loading = signal(true);
@@ -110,6 +124,11 @@ export class GadgetListComponent implements OnInit, OnDestroy {
   onSearch(event: Event) {
     const query = (event.target as HTMLInputElement).value;
     this.searchSubject.next(query);
+  }
+
+  logout() {
+    this.authService.logout();
+    this.router.navigate(['/login']);
   }
 
   ngOnDestroy() {

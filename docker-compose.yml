@@ -19,8 +19,20 @@ services:
       - db
     environment:
       DATABASE_URL: postgresql://user:password@db:5432/gadget_db
+      JWT_SECRET: super-secret-dev-key-change-in-production
 
-  # 3. フロントエンド (Angular)
+  # 3. Prisma Studio (DB管理UI)
+  prisma-studio:
+    build: ./backend
+    ports:
+      - "5555:5555"
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://user:password@db:5432/gadget_db
+    command: ["npx", "prisma", "studio", "--port", "5555", "--hostname", "0.0.0.0"]
+
+  # 4. フロントエンド (Angular)
   frontend:
     build: ./frontend
     ports:

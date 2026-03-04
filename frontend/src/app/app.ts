@@ -1,11 +1,10 @@
 import { Component } from '@angular/core';
-import { GadgetListComponent } from './gadget-list.component';
+import { RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [GadgetListComponent],
-  template: '<app-gadget-list></app-gadget-list>'
+  imports: [RouterOutlet],
+  template: '<router-outlet></router-outlet>',
 })
-
 export class App {}
