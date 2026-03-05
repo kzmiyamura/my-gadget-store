@@ -1,6 +1,7 @@
 import { Component, effect, inject, input, resource, signal, untracked } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { GadgetService } from '../../gadget.service';
 import { Gadget } from '../../gadget.model';
 
@@ -122,6 +123,7 @@ export class GadgetFormComponent {
   private fb = inject(FormBuilder);
   private gadgetService = inject(GadgetService);
   private router = inject(Router);
+  private snackBar = inject(MatSnackBar);
 
   /**
    * ルートパラメーター :id を受け取る（withComponentInputBinding が必要）。
@@ -182,13 +184,17 @@ export class GadgetFormComponent {
       ? this.gadgetService.updateGadget(Number(id), { name, price, description })
       : this.gadgetService.createGadget({ name, price, description });
 
+    const successMessage = id ? 'ガジェット情報を更新しました' : '新しいガジェットを登録しました';
+
     request.subscribe({
       next: () => {
         this.isSubmitting.set(false);
+        this.snackBar.open(successMessage, '閉じる', { duration: 3000 });
         this.router.navigate(['/gadgets']);
       },
       error: () => {
         this.isSubmitting.set(false);
+        this.snackBar.open('保存に失敗しました。もう一度お試しください。', '閉じる', { duration: 3000 });
       },
     });
   }
@@ -201,10 +207,12 @@ export class GadgetFormComponent {
     this.gadgetService.deleteGadget(Number(id)).subscribe({
       next: () => {
         this.isDeleting.set(false);
+        this.snackBar.open('ガジェットを削除しました', '閉じる', { duration: 3000 });
         this.router.navigate(['/gadgets']);
       },
       error: () => {
         this.isDeleting.set(false);
+        this.snackBar.open('削除に失敗しました。もう一度お試しください。', '閉じる', { duration: 3000 });
       },
     });
   }
