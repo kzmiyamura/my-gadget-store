@@ -28,4 +28,11 @@ export const handlers = [
     if (!gadget) return HttpResponse.json({ message: 'Not Found' }, { status: 404 });
     return HttpResponse.json({ ...gadget, ...body });
   }),
+
+  http.delete('http://localhost:3000/gadgets/:id', ({ params }) => {
+    const id = Number(params['id']);
+    const gadget = mockGadgets.find((g) => g.id === id);
+    if (!gadget) return HttpResponse.json({ message: 'Not Found' }, { status: 404 });
+    return HttpResponse.json(gadget);
+  }),
 ];

@@ -31,6 +31,27 @@ describe('GadgetEditComponent', () => {
     expect(screen.getByRole('button', { name: '保存' })).toBeDisabled();
   });
 
+  it('削除ボタンをクリックすると DELETE API が呼ばれること', async () => {
+    let deleteCalled = false;
+
+    server.use(
+      http.delete(`http://localhost:3000/gadgets/${defaultGadget.id}`, () => {
+        deleteCalled = true;
+        return HttpResponse.json(defaultGadget);
+      }),
+    );
+
+    await render(GadgetEditComponent, {
+      providers: [provideHttpClient()],
+      inputs: { gadget: defaultGadget },
+    });
+
+    await screen.findByDisplayValue(defaultGadget.name);
+    fireEvent.click(screen.getByRole('button', { name: '削除' }));
+
+    await vi.waitFor(() => expect(deleteCalled).toBe(true));
+  });
+
   it('正常な値で API が呼ばれること', async () => {
     let patchCalled = false;
 

@@ -26,4 +26,8 @@ export class GadgetService {
   ): Observable<Gadget> {
     return this.http.patch<Gadget>(`${this.apiUrl}/${id}`, data);
   }
+
+  deleteGadget(id: number): Observable<Gadget> {
+    return this.http.delete<Gadget>(`${this.apiUrl}/${id}`);
+  }
 }

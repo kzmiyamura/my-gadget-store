@@ -93,6 +93,7 @@ import { GadgetEditComponent } from './gadget-edit.component';
       <app-gadget-edit
         [gadget]="activeGadget()!"
         (saved)="onSaved($event)"
+        (deleted)="onDeleted($event)"
         (cancelled)="activeGadget.set(null)"
       />
     }
@@ -128,7 +129,11 @@ export class GadgetListComponent implements OnDestroy {
   }
 
   onSaved(updated: Gadget): void {
-    // 現状は UI 上のみ反映（CRUD API が実装されたら API 呼び出しに置き換える）
+    this.gadgetsResource.reload();
+    this.activeGadget.set(null);
+  }
+
+  onDeleted(id: number): void {
     this.gadgetsResource.reload();
     this.activeGadget.set(null);
   }

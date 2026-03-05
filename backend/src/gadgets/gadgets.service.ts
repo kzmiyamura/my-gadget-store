@@ -25,4 +25,8 @@ export class GadgetsService {
   ) {
     return this.prisma.gadget.update({ where: { id }, data });
   }
+
+  async deleteGadget(id: number) {
+    return this.prisma.gadget.delete({ where: { id } });
+  }
 }

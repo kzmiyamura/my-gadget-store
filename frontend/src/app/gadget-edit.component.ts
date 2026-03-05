@@ -65,21 +65,31 @@ import { Gadget } from './gadget.model';
             ></textarea>
           </div>
 
-          <div class="flex justify-end gap-3 mt-6">
+          <div class="flex justify-between mt-6">
             <button
               type="button"
-              (click)="cancelled.emit()"
-              class="px-4 py-2 text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+              (click)="onDelete()"
+              [disabled]="isDeleting() || isLoading()"
+              class="px-4 py-2 bg-red-500 hover:bg-red-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-medium transition"
             >
-              キャンセル
+              {{ isDeleting() ? '削除中...' : '削除' }}
             </button>
-            <button
-              type="submit"
-              [disabled]="form.invalid || isLoading()"
-              class="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-medium transition"
-            >
-              {{ isLoading() ? '保存中...' : '保存' }}
-            </button>
+            <div class="flex gap-3">
+              <button
+                type="button"
+                (click)="cancelled.emit()"
+                class="px-4 py-2 text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+              >
+                キャンセル
+              </button>
+              <button
+                type="submit"
+                [disabled]="form.invalid || isLoading() || isDeleting()"
+                class="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-medium transition"
+              >
+                {{ isLoading() ? '保存中...' : '保存' }}
+              </button>
+            </div>
           </div>
         </form>
       </div>
@@ -96,10 +106,14 @@ export class GadgetEditComponent {
   /** 保存時に更新済みガジェットを親へ通知 */
   saved = output<Gadget>();
 
+  /** 削除時に削除した ID を親へ通知 */
+  deleted = output<number>();
+
   /** キャンセル時に親へ通知 */
   cancelled = output<void>();
 
   isLoading = signal(false);
+  isDeleting = signal(false);
 
   form = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(3)]],
@@ -118,6 +132,19 @@ export class GadgetEditComponent {
       untracked(() => {
         this.form.patchValue({ name: g.name, price: g.price, description: g.description });
       });
+    });
+  }
+
+  onDelete(): void {
+    this.isDeleting.set(true);
+    this.gadgetService.deleteGadget(this.gadget().id).subscribe({
+      next: () => {
+        this.isDeleting.set(false);
+        this.deleted.emit(this.gadget().id);
+      },
+      error: () => {
+        this.isDeleting.set(false);
+      },
     });
   }
 
