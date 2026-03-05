@@ -10,6 +10,10 @@ export class GadgetService {
   private http = inject(HttpClient);
   private apiUrl = 'http://localhost:3000/gadgets';
 
+  getGadget(id: number): Observable<Gadget> {
+    return this.http.get<Gadget>(`${this.apiUrl}/${id}`);
+  }
+
   getGadgets(): Observable<Gadget[]> {
     return this.http.get<Gadget[]>(this.apiUrl);
   }

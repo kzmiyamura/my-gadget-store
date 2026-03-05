@@ -10,6 +10,11 @@ export class GadgetsController {
     return this.gadgetsService.findAll(q);
   }
 
+  @Get(':id')
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.gadgetsService.findOne(id);
+  }
+
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,

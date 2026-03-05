@@ -1,16 +1,15 @@
 import { Component, inject, signal, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { GadgetService } from './gadget.service';
 import { Gadget } from './gadget.model';
 import { AuthService } from './auth/auth.service';
-import { GadgetEditComponent } from './gadget-edit.component';
 
 @Component({
   selector: 'app-gadget-list',
   standalone: true,
-  imports: [CommonModule, GadgetEditComponent],
+  imports: [CommonModule, RouterLink],
   template: `
     <div class="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 py-12 px-4">
       <div class="max-w-7xl mx-auto">
@@ -69,12 +68,12 @@ import { GadgetEditComponent } from './gadget-edit.component';
                       ¥{{ gadget.price.toLocaleString() }}
                     </span>
                     <div class="flex gap-2">
-                      <button
-                        (click)="activeGadget.set(gadget)"
+                      <a
+                        [routerLink]="['/gadgets', gadget.id]"
                         class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors duration-200"
                       >
                         編集
-                      </button>
+                      </a>
                       <button class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors duration-200">
                         購入
                       </button>
@@ -87,16 +86,6 @@ import { GadgetEditComponent } from './gadget-edit.component';
         }
       </div>
     </div>
-
-    <!-- 編集モーダル -->
-    @if (activeGadget()) {
-      <app-gadget-edit
-        [gadget]="activeGadget()!"
-        (saved)="onSaved($event)"
-        (deleted)="onDeleted($event)"
-        (cancelled)="activeGadget.set(null)"
-      />
-    }
   `,
 })
 export class GadgetListComponent implements OnDestroy {
@@ -104,19 +93,10 @@ export class GadgetListComponent implements OnDestroy {
   protected authService = inject(AuthService);
   private router = inject(Router);
 
-  /** 検索ワードを Signal で保持。rxResource の request として使用。 */
   searchQuery = signal('');
-
-  /** 編集対象ガジェット。null のとき編集モーダルは非表示。 */
-  activeGadget = signal<Gadget | null>(null);
 
   private debounceTimer?: ReturnType<typeof setTimeout>;
 
-  /**
-   * rxResource: searchQuery シグナルが変わると自動で再取得。
-   * - isLoading() / value() / error() をテンプレートで直接参照できる。
-   * - 前回のリクエストは自動キャンセル（switchMap 相当）。
-   */
   gadgetsResource = rxResource<Gadget[], string>({
     params: () => this.searchQuery(),
     stream: ({ params: query }) => this.gadgetService.searchGadgets(query),
@@ -126,16 +106,6 @@ export class GadgetListComponent implements OnDestroy {
     const value = (event.target as HTMLInputElement).value;
     clearTimeout(this.debounceTimer);
     this.debounceTimer = setTimeout(() => this.searchQuery.set(value), 300);
-  }
-
-  onSaved(updated: Gadget): void {
-    this.gadgetsResource.reload();
-    this.activeGadget.set(null);
-  }
-
-  onDeleted(id: number): void {
-    this.gadgetsResource.reload();
-    this.activeGadget.set(null);
   }
 
   logout(): void {

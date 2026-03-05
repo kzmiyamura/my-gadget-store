@@ -18,20 +18,11 @@ import { Gadget } from './gadget.model';
   standalone: true,
   imports: [ReactiveFormsModule],
   template: `
-    <!-- オーバーレイ -->
-    <div
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4"
-      (click)="cancelled.emit()"
-    >
-      <!-- モーダル本体（クリックの伝播を止める） -->
-      <div
-        class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6"
-        (click)="$event.stopPropagation()"
-      >
-        <h2 class="text-xl font-bold text-gray-800 mb-1">ガジェットを編集</h2>
-        <p class="text-sm text-gray-400 mb-5">ID: {{ gadget().id }}</p>
+    <div class="bg-white rounded-2xl shadow-xl p-6">
+      <h2 class="text-xl font-bold text-gray-800 mb-1">ガジェットを編集</h2>
+      <p class="text-sm text-gray-400 mb-5">ID: {{ gadget().id }}</p>
 
-        <form [formGroup]="form" (ngSubmit)="onSave()" class="space-y-4">
+      <form [formGroup]="form" (ngSubmit)="onSave()" class="space-y-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">名前</label>
             <input
@@ -92,7 +83,6 @@ import { Gadget } from './gadget.model';
             </div>
           </div>
         </form>
-      </div>
     </div>
   `,
 })
