@@ -1,19 +1,20 @@
-import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, signal, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { Subject, Subscription } from 'rxjs';
-import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { GadgetService } from './gadget.service';
 import { Gadget } from './gadget.model';
 import { AuthService } from './auth/auth.service';
+import { GadgetEditComponent } from './gadget-edit.component';
 
 @Component({
   selector: 'app-gadget-list',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, GadgetEditComponent],
   template: `
     <div class="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 py-12 px-4">
       <div class="max-w-7xl mx-auto">
+
         <!-- ヘッダー -->
         <div class="flex items-center justify-between mb-8">
           <h1 class="text-4xl font-bold text-gray-800">ガジェットストア</h1>
@@ -46,34 +47,38 @@ import { AuthService } from './auth/auth.service';
           </div>
         </div>
 
-        @if (loading()) {
+        @if (gadgetsResource.isLoading()) {
           <div class="text-center text-gray-500 py-12">
             <div class="inline-block w-8 h-8 border-4 border-purple-400 border-t-transparent rounded-full animate-spin"></div>
             <p class="mt-3">検索中...</p>
           </div>
-        } @else if (gadgets().length === 0) {
+        } @else if ((gadgetsResource.value() ?? []).length === 0) {
           <div class="text-center text-gray-500 py-16">
             <p class="text-5xl mb-4">🔍</p>
-            <p class="text-lg">「{{ currentQuery() }}」に一致するガジェットはありませんでした</p>
+            <p class="text-lg">「{{ searchQuery() }}」に一致するガジェットはありませんでした</p>
           </div>
         } @else {
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            @for (gadget of gadgets(); track gadget.id) {
+            @for (gadget of (gadgetsResource.value() ?? []); track gadget.id) {
               <div class="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 overflow-hidden">
                 <div class="p-6">
-                  <h2 class="text-2xl font-bold text-gray-800 mb-2">
-                    {{ gadget.name }}
-                  </h2>
-                  <p class="text-gray-600 mb-4 min-h-[3rem]">
-                    {{ gadget.description }}
-                  </p>
+                  <h2 class="text-2xl font-bold text-gray-800 mb-2">{{ gadget.name }}</h2>
+                  <p class="text-gray-600 mb-4 min-h-[3rem]">{{ gadget.description }}</p>
                   <div class="flex items-center justify-between">
                     <span class="text-3xl font-bold text-purple-600">
                       ¥{{ gadget.price.toLocaleString() }}
                     </span>
-                    <button class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors duration-200">
-                      購入
-                    </button>
+                    <div class="flex gap-2">
+                      <button
+                        (click)="activeGadget.set(gadget)"
+                        class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                      >
+                        編集
+                      </button>
+                      <button class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors duration-200">
+                        購入
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -82,56 +87,58 @@ import { AuthService } from './auth/auth.service';
         }
       </div>
     </div>
-  `
+
+    <!-- 編集モーダル -->
+    @if (activeGadget()) {
+      <app-gadget-edit
+        [activeGadget]="activeGadget()"
+        (saved)="onSaved($event)"
+        (cancelled)="activeGadget.set(null)"
+      />
+    }
+  `,
 })
-export class GadgetListComponent implements OnInit, OnDestroy {
+export class GadgetListComponent implements OnDestroy {
   private gadgetService = inject(GadgetService);
-  private searchSubject = new Subject<string>();
-  private subscription = new Subscription();
   protected authService = inject(AuthService);
   private router = inject(Router);
 
-  gadgets = signal<Gadget[]>([]);
-  loading = signal(true);
-  currentQuery = signal('');
+  /** 検索ワードを Signal で保持。rxResource の request として使用。 */
+  searchQuery = signal('');
 
-  ngOnInit() {
-    this.subscription.add(
-      this.searchSubject.pipe(
-        debounceTime(300),
-        distinctUntilChanged(),
-        switchMap((query) => {
-          this.loading.set(true);
-          this.currentQuery.set(query);
-          return this.gadgetService.searchGadgets(query);
-        })
-      ).subscribe({
-        next: (data) => {
-          this.gadgets.set(data);
-          this.loading.set(false);
-        },
-        error: (err) => {
-          console.error('検索エラー:', err);
-          this.loading.set(false);
-        }
-      })
-    );
+  /** 編集対象ガジェット。null のとき編集モーダルは非表示。 */
+  activeGadget = signal<Gadget | null>(null);
 
-    // 初期ロード（全件表示）
-    this.searchSubject.next('');
+  private debounceTimer?: ReturnType<typeof setTimeout>;
+
+  /**
+   * rxResource: searchQuery シグナルが変わると自動で再取得。
+   * - isLoading() / value() / error() をテンプレートで直接参照できる。
+   * - 前回のリクエストは自動キャンセル（switchMap 相当）。
+   */
+  gadgetsResource = rxResource<Gadget[], string>({
+    params: () => this.searchQuery(),
+    stream: ({ params: query }) => this.gadgetService.searchGadgets(query),
+  });
+
+  onSearch(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    clearTimeout(this.debounceTimer);
+    this.debounceTimer = setTimeout(() => this.searchQuery.set(value), 300);
   }
 
-  onSearch(event: Event) {
-    const query = (event.target as HTMLInputElement).value;
-    this.searchSubject.next(query);
+  onSaved(updated: Gadget): void {
+    // 現状は UI 上のみ反映（CRUD API が実装されたら API 呼び出しに置き換える）
+    this.gadgetsResource.reload();
+    this.activeGadget.set(null);
   }
 
-  logout() {
+  logout(): void {
     this.authService.logout();
     this.router.navigate(['/login']);
   }
 
-  ngOnDestroy() {
-    this.subscription.unsubscribe();
+  ngOnDestroy(): void {
+    clearTimeout(this.debounceTimer);
   }
 }
