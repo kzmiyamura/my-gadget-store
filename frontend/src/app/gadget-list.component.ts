@@ -1,6 +1,6 @@
 import { Component, inject, signal, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterLink } from '@angular/router';
+import { Router, RouterLink, RouterModule } from '@angular/router';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { GadgetService } from './gadget.service';
 import { Gadget } from './gadget.model';
@@ -9,7 +9,7 @@ import { AuthService } from './auth/auth.service';
 @Component({
   selector: 'app-gadget-list',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, RouterModule],
   template: `
     <div class="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 py-12 px-4">
       <div class="max-w-7xl mx-auto">
@@ -19,6 +19,12 @@ import { AuthService } from './auth/auth.service';
           <h1 class="text-4xl font-bold text-gray-800">ガジェットストア</h1>
           <div class="flex items-center gap-3">
             <span class="text-sm text-gray-500">{{ authService.currentUser()?.email }}</span>
+            <a
+              routerLink="/gadgets/new"
+              class="text-sm bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200"
+            >
+              ＋ 新規登録
+            </a>
             <button
               (click)="logout()"
               class="text-sm bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 font-medium py-2 px-4 rounded-lg transition duration-200"

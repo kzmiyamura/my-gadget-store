@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, firstValueFrom } from 'rxjs';
 import { Gadget } from './gadget.model';
 
 @Injectable({
@@ -10,8 +10,9 @@ export class GadgetService {
   private http = inject(HttpClient);
   private apiUrl = 'http://localhost:3000/gadgets';
 
-  getGadget(id: number): Observable<Gadget> {
-    return this.http.get<Gadget>(`${this.apiUrl}/${id}`);
+  /** resource() API 向け：Promise を返す 1 件取得 */
+  getGadget(id: string): Promise<Gadget> {
+    return firstValueFrom(this.http.get<Gadget>(`${this.apiUrl}/${id}`));
   }
 
   getGadgets(): Observable<Gadget[]> {
@@ -22,6 +23,10 @@ export class GadgetService {
     return this.http.get<Gadget[]>(this.apiUrl, {
       params: query ? { q: query } : {},
     });
+  }
+
+  createGadget(data: { name: string; price: number; description: string }): Observable<Gadget> {
+    return this.http.post<Gadget>(this.apiUrl, data);
   }
 
   updateGadget(

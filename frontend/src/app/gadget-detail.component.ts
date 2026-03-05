@@ -65,15 +65,12 @@ export class GadgetDetailComponent {
   isLoading = signal(true);
 
   constructor() {
-    const id = Number(this.route.snapshot.paramMap.get('id'));
-    this.gadgetService.getGadget(id).subscribe({
-      next: (g) => {
-        this.gadget.set(g);
-        this.isLoading.set(false);
-      },
-      error: () => {
-        this.isLoading.set(false);
-      },
+    const id = this.route.snapshot.paramMap.get('id') ?? '';
+    this.gadgetService.getGadget(id).then((g) => {
+      this.gadget.set(g);
+      this.isLoading.set(false);
+    }).catch(() => {
+      this.isLoading.set(false);
     });
   }
 

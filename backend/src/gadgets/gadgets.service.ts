@@ -19,6 +19,10 @@ export class GadgetsService {
     });
   }
 
+  async create(data: { name: string; price: number; description: string }) {
+    return this.prisma.gadget.create({ data });
+  }
+
   async findOne(id: number) {
     return this.prisma.gadget.findUniqueOrThrow({ where: { id } });
   }
