@@ -134,7 +134,7 @@ export class GadgetFormComponent {
   isSubmitting = signal(false);
   isDeleting = signal(false);
 
-  private readonly horizontalPosition: MatSnackBarHorizontalPosition = 'right';
+  private readonly horizontalPosition: MatSnackBarHorizontalPosition = 'end';
   private readonly verticalPosition: MatSnackBarVerticalPosition = 'top';
 
   form = this.fb.group({

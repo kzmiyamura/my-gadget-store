@@ -10,7 +10,12 @@
  * このクラスが付与され、MDC トークン (CSS カスタムプロパティ) を上書きする。
  */
 .success-snackbar {
-  --mdc-snackbar-container-color: #16a34a;   /* green-600 */
+  --mdc-snackbar-container-color: #2e7d32;   /* MUI green-800 */
   --mdc-snackbar-supporting-text-color: #ffffff;
   --mat-snack-bar-button-color: #ffffff;
+}
+
+/* mdc-snackbar__surface に直接 box-shadow を設定して浮き上がりを抑制 */
+.success-snackbar .mdc-snackbar__surface {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
