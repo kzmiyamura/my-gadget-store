@@ -1,6 +1,6 @@
 # my-gadget-store 開発状況
 
-最終更新: 2026-03-05 (Reactive Forms リファクタリング)
+最終更新: 2026-03-05 (削除機能追加)
 
 ---
 
@@ -61,6 +61,7 @@ docker compose exec frontend npx ng test --watch=false
 - [x] `GET /gadgets` — ガジェット一覧取得
 - [x] `GET /gadgets?q=keyword` — 名前・説明文の部分一致検索（大文字小文字無視）
 - [x] `PATCH /gadgets/:id` — ガジェット更新（Prisma）
+- [x] `DELETE /gadgets/:id` — ガジェット削除（Prisma）
 - [x] CORS 設定（`app.enableCors()`）
 - [x] Prisma ORM による PostgreSQL 接続
 - [x] DB マイグレーション自動実行・seed 自動投入（冪等）
@@ -98,7 +99,10 @@ docker compose exec frontend npx ng test --watch=false
   - 保存ボタンは `form.invalid` または `isLoading()` のとき disabled
   - `GadgetService.updateGadget()` で `PATCH /gadgets/:id` を呼び出し
   - 保存成功後に `saved` output を emit → 親の `rxResource.reload()` で一覧を再取得
-  - 編集ボタン → モーダル表示 → 保存 / キャンセル
+  - 削除ボタン（赤）→ `GadgetService.deleteGadget()` で `DELETE /gadgets/:id` を呼び出し
+  - 削除成功後に `deleted = output<number>()` で ID を emit → 親が一覧を reload して閉じる
+  - 削除中は `isDeleting` Signal で保存・削除ボタンを両方 disabled
+  - 編集ボタン → モーダル表示 → 削除 / 保存 / キャンセル
 
 **設計**
 - [x] `environment.ts` / `environment.prod.ts` による API URL の環境別管理
@@ -107,17 +111,18 @@ docker compose exec frontend npx ng test --watch=false
 
 ### テスト (Vitest + Angular Testing Library + MSW)
 
-- [x] `src/mocks/handlers.ts` — MSW ハンドラー（GET /gadgets、PATCH /gadgets/:id）
+- [x] `src/mocks/handlers.ts` — MSW ハンドラー（GET / PATCH / DELETE /gadgets/:id）
 - [x] `gadget-list.component.spec.ts` — インテグレーションテスト 4 件
   - 初期表示でガジェット一覧を取得して表示する
   - API エラー時にクラッシュせず表示されない
   - ログイン中メールがヘッダーに表示される
   - モックデータと件数が一致する
-- [x] `gadget-edit.component.spec.ts` — インテグレーションテスト 2 件
+- [x] `gadget-edit.component.spec.ts` — インテグレーションテスト 3 件
   - 不正な値でボタンが disabled になること
-  - 正常な値で API が呼ばれること
+  - 正常な値で PATCH API が呼ばれること
+  - 削除ボタンをクリックすると DELETE API が呼ばれること
 - [x] `app.spec.ts` — ルートコンポーネント 2 件
-- **合計 8 件すべてグリーン**
+- **合計 9 件すべてグリーン**
 
 ---
 
@@ -164,8 +169,8 @@ my-gadget-store/
 │       │   ├── jwt.strategy.ts  # Bearer Token 検証
 │       │   └── jwt-auth.guard.ts  # @UseGuards 用ガード
 │       ├── gadgets/
-│       │   ├── gadgets.controller.ts  # GET /gadgets?q=
-│       │   ├── gadgets.service.ts     # Prisma 検索ロジック
+│       │   ├── gadgets.controller.ts  # GET / PATCH / DELETE /gadgets
+│       │   ├── gadgets.service.ts     # findAll / updateGadget / deleteGadget
 │       │   └── gadgets.module.ts
 │       └── prisma/
 │           └── prisma.service.ts
@@ -192,10 +197,11 @@ my-gadget-store/
             │   ├── auth.guard.ts      # 未ログインリダイレクト
             │   └── login.component.ts  # ログイン / 登録フォーム
             ├── gadget.model.ts        # Gadget 型定義
-            ├── gadget.service.ts      # getGadgets / searchGadgets
+            ├── gadget.service.ts      # getGadgets / searchGadgets / updateGadget / deleteGadget
             ├── gadget-list.component.ts   # rxResource + 検索 + ログアウト
             ├── gadget-list.component.spec.ts  # インテグレーションテスト
-            └── gadget-edit.component.ts   # linkedSignal 編集フォーム
+            ├── gadget-edit.component.ts   # Reactive Forms 編集・削除フォーム
+            └── gadget-edit.component.spec.ts  # インテグレーションテスト
 ```
 
 ---
@@ -213,7 +219,7 @@ my-gadget-store/
 
 ## 未実装（今後の拡張候補）
 
-- [ ] ガジェットの登録・削除 API（CRUD 完成）
+- [ ] ガジェットの登録 API（POST /gadgets）
 - [x] 編集フォームの保存を API に連携（PATCH /gadgets/:id）
 - [ ] カート機能・購入フロー
 - [ ] ページネーション / 無限スクロール
