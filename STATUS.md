@@ -1,6 +1,6 @@
 # my-gadget-store 開発状況
 
-最終更新: 2026-03-05 (削除機能追加)
+最終更新: 2026-03-05 (Angular Router 導入・画面遷移)
 
 ---
 
@@ -39,6 +39,18 @@ docker compose up --build
 > バックエンドは初回起動時に `prisma migrate deploy` と seed を自動実行する。
 > seed はデータが既に存在する場合はスキップされる（冪等）。
 
+> **注意**: バックエンドコードを変更した場合は `docker compose up backend --build -d` で再ビルドが必要。
+> フロントエンドはホットリロード対応（volume マウント済み）。
+
+### ルーティング
+
+| パス | 画面 | 認証 |
+|---|---|---|
+| `/login` | ログイン / 新規登録 | 不要 |
+| `/gadgets` | ガジェット一覧 | authGuard |
+| `/gadgets/:id` | ガジェット詳細・編集 | authGuard |
+| `/` | → `/gadgets` リダイレクト | — |
+
 ### テストアカウント
 
 | メール | パスワード |
@@ -60,6 +72,7 @@ docker compose exec frontend npx ng test --watch=false
 **ガジェット**
 - [x] `GET /gadgets` — ガジェット一覧取得
 - [x] `GET /gadgets?q=keyword` — 名前・説明文の部分一致検索（大文字小文字無視）
+- [x] `GET /gadgets/:id` — ガジェット1件取得
 - [x] `PATCH /gadgets/:id` — ガジェット更新（Prisma）
 - [x] `DELETE /gadgets/:id` — ガジェット削除（Prisma）
 - [x] CORS 設定（`app.enableCors()`）
@@ -74,23 +87,30 @@ docker compose exec frontend npx ng test --watch=false
 
 ### フロントエンド (Angular)
 
+**ルーティング**
+- [x] `app.routes.ts` — `/gadgets` / `/gadgets/:id` / `/login` ルート定義
+- [x] `authGuard` — 未ログイン時に `/login` へリダイレクト
+- [x] `/` → `/gadgets` リダイレクト
+
 **認証**
 - [x] `AuthService` — Signal によるログイン状態管理（`currentUser` / `isLoggedIn`）
 - [x] `authInterceptor` — 全リクエストに `Authorization: Bearer` を自動付加
-- [x] `authGuard` — 未ログイン時に `/login` へリダイレクト
 - [x] `LoginComponent` — ログイン / 新規登録フォーム（トグル切り替え）
 - [x] ログアウト（localStorage クリア + Signal リセット）
 
-**ガジェット一覧**
+**ガジェット一覧 (`/gadgets`)**
 - [x] `rxResource` によるリアクティブなデータ取得
   - `params` Signal が変わると自動で再取得・前リクエストをキャンセル
   - `isLoading()` / `value()` / `error()` を直接テンプレートで参照
 - [x] debounce 付きリアルタイム検索（300ms）
 - [x] ローディングスピナー・0件メッセージ
-- [x] Tailwind CSS によるモダン UI
+- [x] 「編集」ボタンが `routerLink="/gadgets/:id"` で詳細ページへ遷移
 - [x] ヘッダーにログイン中メールアドレス + ログアウトボタン
 
-**ガジェット編集**
+**ガジェット詳細・編集 (`/gadgets/:id`)**
+- [x] `GadgetDetailComponent` — `ActivatedRoute` で `:id` を取得して API フェッチ
+  - ローディング中スピナー表示・404 時エラーメッセージ表示
+  - 保存・削除・キャンセル後に `/gadgets` へ遷移
 - [x] `GadgetEditComponent` — Reactive Forms 仕様の編集フォーム
   - `input.required<Gadget>()` で null チェック不要
   - `effect()` + `form.patchValue()` で gadget 切り替わり時にフォームを自動リセット
@@ -98,11 +118,8 @@ docker compose exec frontend npx ng test --watch=false
   - バリデーションエラーをインラインで赤字表示（invalid && touched）
   - 保存ボタンは `form.invalid` または `isLoading()` のとき disabled
   - `GadgetService.updateGadget()` で `PATCH /gadgets/:id` を呼び出し
-  - 保存成功後に `saved` output を emit → 親の `rxResource.reload()` で一覧を再取得
   - 削除ボタン（赤）→ `GadgetService.deleteGadget()` で `DELETE /gadgets/:id` を呼び出し
-  - 削除成功後に `deleted = output<number>()` で ID を emit → 親が一覧を reload して閉じる
   - 削除中は `isDeleting` Signal で保存・削除ボタンを両方 disabled
-  - 編集ボタン → モーダル表示 → 削除 / 保存 / キャンセル
 
 **設計**
 - [x] `environment.ts` / `environment.prod.ts` による API URL の環境別管理
@@ -111,7 +128,7 @@ docker compose exec frontend npx ng test --watch=false
 
 ### テスト (Vitest + Angular Testing Library + MSW)
 
-- [x] `src/mocks/handlers.ts` — MSW ハンドラー（GET / PATCH / DELETE /gadgets/:id）
+- [x] `src/mocks/handlers.ts` — MSW ハンドラー（GET / GET :id / PATCH / DELETE /gadgets/:id）
 - [x] `gadget-list.component.spec.ts` — インテグレーションテスト 4 件
   - 初期表示でガジェット一覧を取得して表示する
   - API エラー時にクラッシュせず表示されない
@@ -169,8 +186,8 @@ my-gadget-store/
 │       │   ├── jwt.strategy.ts  # Bearer Token 検証
 │       │   └── jwt-auth.guard.ts  # @UseGuards 用ガード
 │       ├── gadgets/
-│       │   ├── gadgets.controller.ts  # GET / PATCH / DELETE /gadgets
-│       │   ├── gadgets.service.ts     # findAll / updateGadget / deleteGadget
+│       │   ├── gadgets.controller.ts  # GET / GET :id / PATCH / DELETE /gadgets
+│       │   ├── gadgets.service.ts     # findAll / findOne / updateGadget / deleteGadget
 │       │   └── gadgets.module.ts
 │       └── prisma/
 │           └── prisma.service.ts
@@ -187,7 +204,7 @@ my-gadget-store/
         └── app/
             ├── app.ts               # RouterOutlet
             ├── app.config.ts        # provideHttpClient + authInterceptor
-            ├── app.routes.ts        # /login (公開) / '' (authGuard 保護)
+            ├── app.routes.ts        # /login / /gadgets / /gadgets/:id
             ├── app.spec.ts          # ルートコンポーネントテスト
             ├── core/constants/
             │   └── auth.constants.ts  # localStorage キー定数
@@ -197,9 +214,10 @@ my-gadget-store/
             │   ├── auth.guard.ts      # 未ログインリダイレクト
             │   └── login.component.ts  # ログイン / 登録フォーム
             ├── gadget.model.ts        # Gadget 型定義
-            ├── gadget.service.ts      # getGadgets / searchGadgets / updateGadget / deleteGadget
-            ├── gadget-list.component.ts   # rxResource + 検索 + ログアウト
+            ├── gadget.service.ts      # getGadget / getGadgets / searchGadgets / updateGadget / deleteGadget
+            ├── gadget-list.component.ts   # rxResource + 検索 + routerLink
             ├── gadget-list.component.spec.ts  # インテグレーションテスト
+            ├── gadget-detail.component.ts # /gadgets/:id ページ
             ├── gadget-edit.component.ts   # Reactive Forms 編集・削除フォーム
             └── gadget-edit.component.spec.ts  # インテグレーションテスト
 ```
@@ -219,8 +237,7 @@ my-gadget-store/
 
 ## 未実装（今後の拡張候補）
 
-- [ ] ガジェットの登録 API（POST /gadgets）
-- [x] 編集フォームの保存を API に連携（PATCH /gadgets/:id）
+- [ ] ガジェットの登録 API・画面（POST /gadgets）
 - [ ] カート機能・購入フロー
 - [ ] ページネーション / 無限スクロール
 - [ ] カテゴリ・価格帯によるフィルタリング
