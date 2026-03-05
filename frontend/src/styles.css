@@ -1,3 +1,16 @@
 /* You can add global styles to this file, and also import other style files */
 
 @import 'tailwindcss';
+
+/* ── Snackbar カスタムスタイル ─────────────────────────────────────────── */
+
+/*
+ * success-snackbar: 保存・削除成功時の緑色トースト通知。
+ * panelClass に 'success-snackbar' を指定すると mat-mdc-snack-bar-container に
+ * このクラスが付与され、MDC トークン (CSS カスタムプロパティ) を上書きする。
+ */
+.success-snackbar {
+  --mdc-snackbar-container-color: #16a34a;   /* green-600 */
+  --mdc-snackbar-supporting-text-color: #ffffff;
+  --mat-snack-bar-button-color: #ffffff;
+}

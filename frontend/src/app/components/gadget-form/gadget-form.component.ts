@@ -1,7 +1,7 @@
 import { Component, effect, inject, input, resource, signal, untracked } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatSnackBar, MatSnackBarHorizontalPosition, MatSnackBarVerticalPosition } from '@angular/material/snack-bar';
 import { GadgetService } from '../../gadget.service';
 import { Gadget } from '../../gadget.model';
 
@@ -134,6 +134,9 @@ export class GadgetFormComponent {
   isSubmitting = signal(false);
   isDeleting = signal(false);
 
+  private readonly horizontalPosition: MatSnackBarHorizontalPosition = 'right';
+  private readonly verticalPosition: MatSnackBarVerticalPosition = 'top';
+
   form = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(3)]],
     price: [0, [Validators.required, Validators.min(0)]],
@@ -189,12 +192,12 @@ export class GadgetFormComponent {
     request.subscribe({
       next: () => {
         this.isSubmitting.set(false);
-        this.snackBar.open(successMessage, '閉じる', { duration: 3000 });
+        this.notify(successMessage, ['success-snackbar']);
         this.router.navigate(['/gadgets']);
       },
       error: () => {
         this.isSubmitting.set(false);
-        this.snackBar.open('保存に失敗しました。もう一度お試しください。', '閉じる', { duration: 3000 });
+        this.notify('保存に失敗しました。もう一度お試しください。');
       },
     });
   }
@@ -207,13 +210,22 @@ export class GadgetFormComponent {
     this.gadgetService.deleteGadget(Number(id)).subscribe({
       next: () => {
         this.isDeleting.set(false);
-        this.snackBar.open('ガジェットを削除しました', '閉じる', { duration: 3000 });
+        this.notify('ガジェットを削除しました', ['success-snackbar']);
         this.router.navigate(['/gadgets']);
       },
       error: () => {
         this.isDeleting.set(false);
-        this.snackBar.open('削除に失敗しました。もう一度お試しください。', '閉じる', { duration: 3000 });
+        this.notify('削除に失敗しました。もう一度お試しください。');
       },
+    });
+  }
+
+  private notify(message: string, panelClass: string[] = []): void {
+    this.snackBar.open(message, '閉じる', {
+      duration: 3000,
+      panelClass,
+      horizontalPosition: this.horizontalPosition,
+      verticalPosition: this.verticalPosition,
     });
   }
 }
