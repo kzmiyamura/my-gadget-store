@@ -1,6 +1,6 @@
 # my-gadget-store 開発状況
 
-最終更新: 2026-03-05
+最終更新: 2026-03-05 (Reactive Forms リファクタリング)
 
 ---
 
@@ -60,6 +60,7 @@ docker compose exec frontend npx ng test --watch=false
 **ガジェット**
 - [x] `GET /gadgets` — ガジェット一覧取得
 - [x] `GET /gadgets?q=keyword` — 名前・説明文の部分一致検索（大文字小文字無視）
+- [x] `PATCH /gadgets/:id` — ガジェット更新（Prisma）
 - [x] CORS 設定（`app.enableCors()`）
 - [x] Prisma ORM による PostgreSQL 接続
 - [x] DB マイグレーション自動実行・seed 自動投入（冪等）
@@ -89,9 +90,14 @@ docker compose exec frontend npx ng test --watch=false
 - [x] ヘッダーにログイン中メールアドレス + ログアウトボタン
 
 **ガジェット編集**
-- [x] `GadgetEditComponent` — `linkedSignal` による編集フォーム
-  - `activeGadget` が切り替わると `linkedSignal` が自動でフォームをリセット
-  - ユーザーの編集中状態は `form.update()` で保持
+- [x] `GadgetEditComponent` — Reactive Forms 仕様の編集フォーム
+  - `input.required<Gadget>()` で null チェック不要
+  - `effect()` + `form.patchValue()` で gadget 切り替わり時にフォームを自動リセット
+  - `FormBuilder` + `Validators`（name: required/minLength(3)、price: required/min(0)）
+  - バリデーションエラーをインラインで赤字表示（invalid && touched）
+  - 保存ボタンは `form.invalid` または `isLoading()` のとき disabled
+  - `GadgetService.updateGadget()` で `PATCH /gadgets/:id` を呼び出し
+  - 保存成功後に `saved` output を emit → 親の `rxResource.reload()` で一覧を再取得
   - 編集ボタン → モーダル表示 → 保存 / キャンセル
 
 **設計**
@@ -101,14 +107,17 @@ docker compose exec frontend npx ng test --watch=false
 
 ### テスト (Vitest + Angular Testing Library + MSW)
 
-- [x] `src/mocks/handlers.ts` — MSW ハンドラー（GET /gadgets）
+- [x] `src/mocks/handlers.ts` — MSW ハンドラー（GET /gadgets、PATCH /gadgets/:id）
 - [x] `gadget-list.component.spec.ts` — インテグレーションテスト 4 件
   - 初期表示でガジェット一覧を取得して表示する
   - API エラー時にクラッシュせず表示されない
   - ログイン中メールがヘッダーに表示される
   - モックデータと件数が一致する
+- [x] `gadget-edit.component.spec.ts` — インテグレーションテスト 2 件
+  - 不正な値でボタンが disabled になること
+  - 正常な値で API が呼ばれること
 - [x] `app.spec.ts` — ルートコンポーネント 2 件
-- **合計 6 件すべてグリーン**
+- **合計 8 件すべてグリーン**
 
 ---
 
@@ -205,7 +214,7 @@ my-gadget-store/
 ## 未実装（今後の拡張候補）
 
 - [ ] ガジェットの登録・削除 API（CRUD 完成）
-- [ ] 編集フォームの保存を API に連携
+- [x] 編集フォームの保存を API に連携（PATCH /gadgets/:id）
 - [ ] カート機能・購入フロー
 - [ ] ページネーション / 無限スクロール
 - [ ] カテゴリ・価格帯によるフィルタリング

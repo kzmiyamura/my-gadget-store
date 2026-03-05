@@ -18,4 +18,11 @@ export class GadgetsService {
       orderBy: { id: 'asc' },
     });
   }
+
+  async updateGadget(
+    id: number,
+    data: { name?: string; price?: number; description?: string },
+  ) {
+    return this.prisma.gadget.update({ where: { id }, data });
+  }
 }

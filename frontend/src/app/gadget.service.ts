@@ -19,4 +19,11 @@ export class GadgetService {
       params: query ? { q: query } : {},
     });
   }
+
+  updateGadget(
+    id: number,
+    data: { name: string; price: number; description: string },
+  ): Observable<Gadget> {
+    return this.http.patch<Gadget>(`${this.apiUrl}/${id}`, data);
+  }
 }

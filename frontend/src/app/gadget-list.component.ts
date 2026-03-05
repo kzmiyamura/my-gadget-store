@@ -91,7 +91,7 @@ import { GadgetEditComponent } from './gadget-edit.component';
     <!-- 編集モーダル -->
     @if (activeGadget()) {
       <app-gadget-edit
-        [activeGadget]="activeGadget()"
+        [gadget]="activeGadget()!"
         (saved)="onSaved($event)"
         (cancelled)="activeGadget.set(null)"
       />

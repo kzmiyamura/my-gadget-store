@@ -20,4 +20,12 @@ export const handlers = [
 
     return HttpResponse.json(results);
   }),
+
+  http.patch('http://localhost:3000/gadgets/:id', async ({ request, params }) => {
+    const id = Number(params['id']);
+    const body = await request.json() as Partial<(typeof mockGadgets)[0]>;
+    const gadget = mockGadgets.find((g) => g.id === id);
+    if (!gadget) return HttpResponse.json({ message: 'Not Found' }, { status: 404 });
+    return HttpResponse.json({ ...gadget, ...body });
+  }),
 ];
