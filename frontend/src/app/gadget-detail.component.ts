@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { GadgetService } from './gadget.service';
 import { GadgetEditComponent } from './gadget-edit.component';
+import { GadgetStatsComponent } from './components/gadget-stats/gadget-stats.component';
 import { Gadget } from './gadget.model';
 
 /**
@@ -14,7 +15,7 @@ import { Gadget } from './gadget.model';
 @Component({
   selector: 'app-gadget-detail',
   standalone: true,
-  imports: [GadgetEditComponent, RouterLink],
+  imports: [GadgetEditComponent, GadgetStatsComponent, RouterLink],
   template: `
     <div class="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 py-12 px-4">
       <div class="max-w-2xl mx-auto">
@@ -42,6 +43,47 @@ import { Gadget } from './gadget.model';
             (deleted)="onDeleted()"
             (cancelled)="back()"
           />
+
+          <!-- ビューポートに入ったときだけ JS チャンクをロード -->
+          @defer (on viewport) {
+            <app-gadget-stats [gadget]="gadget()!" />
+          } @placeholder {
+            <!-- スケルトン画面: コンポーネントが読み込まれるまで表示 -->
+            <div class="bg-white rounded-2xl shadow-xl p-6 mt-8 animate-pulse">
+              <div class="h-5 bg-gray-200 rounded w-1/4 mb-6"></div>
+
+              <!-- バーチャート skeleton -->
+              <div class="mb-8 space-y-4">
+                @for (i of [1, 2, 3]; track i) {
+                  <div>
+                    <div class="flex justify-between mb-1">
+                      <div class="h-3 bg-gray-200 rounded w-24"></div>
+                      <div class="h-3 bg-gray-200 rounded w-16"></div>
+                    </div>
+                    <div class="h-4 bg-gray-100 rounded-full overflow-hidden">
+                      <div class="h-full bg-gray-200 rounded-full" [style.width]="(40 + i * 15) + '%'"></div>
+                    </div>
+                  </div>
+                }
+              </div>
+
+              <!-- ラインチャート skeleton -->
+              <div class="mb-8">
+                <div class="h-3 bg-gray-200 rounded w-32 mb-3"></div>
+                <div class="h-24 bg-gray-100 rounded-xl"></div>
+              </div>
+
+              <!-- スコアカード skeleton -->
+              <div class="grid grid-cols-3 gap-4">
+                @for (i of [1, 2, 3]; track i) {
+                  <div class="p-4 bg-gray-100 rounded-xl flex flex-col items-center gap-2">
+                    <div class="h-7 bg-gray-200 rounded w-12"></div>
+                    <div class="h-3 bg-gray-200 rounded w-16"></div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
         } @else {
           <div class="text-center text-gray-500 py-16">
             <p class="text-5xl mb-4">🔍</p>

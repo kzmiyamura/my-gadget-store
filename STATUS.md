@@ -1,6 +1,6 @@
 # my-gadget-store 開発状況
 
-最終更新: 2026-03-05 (Angular Router 導入・画面遷移)
+最終更新: 2026-03-06 (GadgetStatsComponent 追加・@defer 遅延読み込み)
 
 ---
 
@@ -107,10 +107,18 @@ docker compose exec frontend npx ng test --watch=false
 - [x] 「編集」ボタンが `routerLink="/gadgets/:id"` で詳細ページへ遷移
 - [x] ヘッダーにログイン中メールアドレス + ログアウトボタン
 
+**ガジェット登録・編集フォーム (`GadgetFormComponent`)**
+- [x] `GadgetFormComponent` — `resource()` API で登録・編集を共通化
+  - `id` input の有無で登録（POST）/ 編集（PATCH）を自動切り替え
+  - `MatSnackBar` で保存完了トースト通知（緑色・右上表示）
+  - `@defer (on viewport)` で `GadgetStatsComponent` を遅延読み込み
+  - スケルトン画面（`@placeholder`）でローディング中の UX を保持
+
 **ガジェット詳細・編集 (`/gadgets/:id`)**
 - [x] `GadgetDetailComponent` — `ActivatedRoute` で `:id` を取得して API フェッチ
   - ローディング中スピナー表示・404 時エラーメッセージ表示
   - 保存・削除・キャンセル後に `/gadgets` へ遷移
+  - `@defer (on viewport)` で `GadgetStatsComponent` を遅延読み込み
 - [x] `GadgetEditComponent` — Reactive Forms 仕様の編集フォーム
   - `input.required<Gadget>()` で null チェック不要
   - `effect()` + `form.patchValue()` で gadget 切り替わり時にフォームを自動リセット
@@ -120,6 +128,13 @@ docker compose exec frontend npx ng test --watch=false
   - `GadgetService.updateGadget()` で `PATCH /gadgets/:id` を呼び出し
   - 削除ボタン（赤）→ `GadgetService.deleteGadget()` で `DELETE /gadgets/:id` を呼び出し
   - 削除中は `isDeleting` Signal で保存・削除ボタンを両方 disabled
+
+**ガジェット統計 (`GadgetStatsComponent`)**
+- [x] `@defer (on viewport)` による遅延読み込み（ビューポートに入るまで JS チャンクを読み込まない）
+- [x] 価格帯ポジション バーチャート（CSS + Tailwind）
+- [x] 月次売上トレンド SVG ラインチャート（グラデーション塗り込み）
+- [x] スコアカード（閲覧数・評価スコア・在庫回転率）
+- [x] `@placeholder` でスケルトン UI、`@loading` でスピナー表示
 
 **設計**
 - [x] `environment.ts` / `environment.prod.ts` による API URL の環境別管理
@@ -217,9 +232,14 @@ my-gadget-store/
             ├── gadget.service.ts      # getGadget / getGadgets / searchGadgets / updateGadget / deleteGadget
             ├── gadget-list.component.ts   # rxResource + 検索 + routerLink
             ├── gadget-list.component.spec.ts  # インテグレーションテスト
-            ├── gadget-detail.component.ts # /gadgets/:id ページ
+            ├── gadget-detail.component.ts # /gadgets/:id ページ（@defer で統計を遅延読み込み）
             ├── gadget-edit.component.ts   # Reactive Forms 編集・削除フォーム
-            └── gadget-edit.component.spec.ts  # インテグレーションテスト
+            ├── gadget-edit.component.spec.ts  # インテグレーションテスト
+            └── components/
+                ├── gadget-form/
+                │   └── gadget-form.component.ts  # 登録・編集共通フォーム（resource() + SnackBar）
+                └── gadget-stats/
+                    └── gadget-stats.component.ts  # 統計グラフ（@defer 遅延読み込み対象）
 ```
 
 ---
@@ -237,7 +257,8 @@ my-gadget-store/
 
 ## 未実装（今後の拡張候補）
 
-- [ ] ガジェットの登録 API・画面（POST /gadgets）
+- [x] ガジェットの登録画面（GadgetFormComponent で POST /gadgets 対応）
+- [ ] バックエンドへの POST /gadgets API 追加
 - [ ] カート機能・購入フロー
 - [ ] ページネーション / 無限スクロール
 - [ ] カテゴリ・価格帯によるフィルタリング

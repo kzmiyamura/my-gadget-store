@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 import { MatSnackBar, MatSnackBarHorizontalPosition, MatSnackBarVerticalPosition } from '@angular/material/snack-bar';
 import { GadgetService } from '../../gadget.service';
 import { Gadget } from '../../gadget.model';
+import { GadgetStatsComponent } from '../gadget-stats/gadget-stats.component';
 
 /**
  * ガジェット登録・編集の共通フォームコンポーネント。
@@ -20,7 +21,7 @@ import { Gadget } from '../../gadget.model';
 @Component({
   selector: 'app-gadget-form',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, GadgetStatsComponent],
   template: `
     <div class="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 py-12 px-4">
       <div class="max-w-2xl mx-auto">
@@ -113,6 +114,52 @@ import { Gadget } from '../../gadget.model';
 
             </form>
           </div>
+        }
+
+        <!-- 統計グラフ: スクロールして表示されるまで JS を読み込まない -->
+        @if (id() && gadgetResource.value()) {
+          @defer (on viewport) {
+            <app-gadget-stats [gadget]="gadgetResource.value()!" />
+          } @placeholder {
+            <!-- スケルトン画面 -->
+            <div class="bg-white rounded-2xl shadow-xl p-6 mt-8 animate-pulse">
+              <div class="h-5 bg-gray-200 rounded w-1/4 mb-6"></div>
+
+              <div class="mb-8 space-y-4">
+                <div class="h-4 bg-gray-200 rounded w-1/3 mb-2"></div>
+                @for (i of [1,2,3]; track i) {
+                  <div class="space-y-1">
+                    <div class="flex justify-between">
+                      <div class="h-3 bg-gray-200 rounded w-24"></div>
+                      <div class="h-3 bg-gray-200 rounded w-16"></div>
+                    </div>
+                    <div class="h-4 bg-gray-100 rounded-full w-full">
+                      <div class="h-4 bg-gray-200 rounded-full" [style.width]="(30 + i * 20) + '%'"></div>
+                    </div>
+                  </div>
+                }
+              </div>
+
+              <div class="mb-8">
+                <div class="h-4 bg-gray-200 rounded w-1/3 mb-3"></div>
+                <div class="h-24 bg-gray-100 rounded-lg"></div>
+              </div>
+
+              <div class="grid grid-cols-3 gap-4">
+                @for (i of [1,2,3]; track i) {
+                  <div class="text-center p-4 bg-gray-100 rounded-xl">
+                    <div class="h-8 bg-gray-200 rounded w-12 mx-auto mb-2"></div>
+                    <div class="h-3 bg-gray-200 rounded w-16 mx-auto"></div>
+                  </div>
+                }
+              </div>
+            </div>
+          } @loading (minimum 300ms) {
+            <div class="flex items-center justify-center gap-2 mt-8 py-6 text-gray-400 text-sm">
+              <div class="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin"></div>
+              統計データを読み込み中...
+            </div>
+          }
         }
 
       </div>
